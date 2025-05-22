@@ -63,12 +63,12 @@ class CreateTab(QWidget):
         form_layout = QFormLayout()
 
         self.id_field = QLineEdit()
-        self.id_field.setMinimumWidth(300)
+        self.id_field.setMinimumWidth(500)
         self.id_field.setPlaceholderText("Команда.Сервис.НазваниеФичи")
         form_layout.addRow("ID (Обязательное):", self.id_field)
 
         self.description_field = QLineEdit()
-        self.description_field.setMinimumWidth(300)
+        self.description_field.setMinimumWidth(500)
         self.description_field.setPlaceholderText("Описание фичи")
         form_layout.addRow("Description (Обязательное):", self.description_field)
 
@@ -90,7 +90,7 @@ class CreateTab(QWidget):
         form_layout.addRow("Audience Type:", self.audience_type_field)
 
         self.audience_target_field = QLineEdit()
-        self.audience_target_field.setMinimumWidth(300)
+        self.audience_target_field.setMinimumWidth(500)
         self.audience_target_field.setPlaceholderText("Укажите заафекченые сервисы через ','")
         form_layout.addRow("Audience Target (Обязательное):", self.audience_target_field)
 
@@ -99,8 +99,9 @@ class CreateTab(QWidget):
         form_layout.addRow("Task ID (Обязательное):", self.taskId_field)
 
         self.removalFeatureTaskId_field = QLineEdit()
+        self.removalFeatureTaskId_field.setMinimumWidth(500)
         self.removalFeatureTaskId_field.setPlaceholderText("Обязательно, если Is Scheduled For Removal = true")
-        form_layout.addRow("Removal Feature Task ID (Обязательное):", self.removalFeatureTaskId_field)
+        form_layout.addRow("Removal Feature Task ID:", self.removalFeatureTaskId_field)
 
         self.isScheduledForRemoval_field = QComboBox()
         self.isScheduledForRemoval_field.addItems(["true", "false"])
@@ -108,16 +109,17 @@ class CreateTab(QWidget):
         form_layout.addRow("Is Scheduled For Removal:", self.isScheduledForRemoval_field)
 
         self.plannedRemovalDate_field = QLineEdit()
-        self.plannedRemovalDate_field.setMinimumWidth(300)
+        self.plannedRemovalDate_field.setMinimumWidth(500)
         self.plannedRemovalDate_field.setPlaceholderText("Обязательно, если Is Scheduled For Removal = true")
-        form_layout.addRow("Planned Removal Date (Обязательное):", self.plannedRemovalDate_field)
+        form_layout.addRow("Planned Removal Date:", self.plannedRemovalDate_field)
 
         self.username_field = QLineEdit()
-        self.username_field.setMinimumWidth(300)
+        self.username_field.setMinimumWidth(250)
         self.username_field.setPlaceholderText("Ivan.Ivanov без @X5.RU")
         form_layout.addRow("Username (Обязательное):", self.username_field)
 
         self.password_field = QLineEdit()
+        self.password_field.setMinimumWidth(250)
         self.password_field.setEchoMode(QLineEdit.Password)
         form_layout.addRow("Password (Обязательное):", self.password_field)
 
@@ -169,9 +171,9 @@ class CreateTab(QWidget):
             missing_fields.append("Password")
         if isScheduledForRemoval:
             if not plannedRemovalDate:
-                missing_fields.append("Planned Removal Date (Обязательное)")
+                missing_fields.append("Planned Removal Date")
             if not removalFeatureTaskId:
-                missing_fields.append("Removal Feature Task ID (Обязательное)")
+                missing_fields.append("Removal Feature Task ID")
         if missing_fields:
             QMessageBox.warning(self, "Input Error",
                                 "Пожалуйста, заполните обязательные поля: " + ", ".join(missing_fields))
@@ -218,11 +220,12 @@ class DeleteTab(QWidget):
         form_layout.addRow("ID (Обязательное):", self.id_field)
 
         self.username_field = QLineEdit()
-        self.username_field.setMinimumWidth(300)
+        self.username_field.setMinimumWidth(250)
         self.username_field.setPlaceholderText("Ivan.Ivanov без @X5.RU")
         form_layout.addRow("Username (Обязательное):", self.username_field)
 
         self.password_field = QLineEdit()
+        self.password_field.setMinimumWidth(250)
         self.password_field.setEchoMode(QLineEdit.Password)
         form_layout.addRow("Password (Обязательное):", self.password_field)
 
@@ -322,10 +325,11 @@ class UpdateActivityTab(QWidget):
 
         form_layout = QFormLayout()
         self.username_field = QLineEdit()
-        self.username_field.setMinimumWidth(300)
+        self.username_field.setMinimumWidth(250)
         self.username_field.setPlaceholderText("Ivan.Ivanov без @X5.RU")
         form_layout.addRow("Username (Обязательное):", self.username_field)
         self.password_field = QLineEdit()
+        self.password_field.setMinimumWidth(250)
         self.password_field.setEchoMode(QLineEdit.Password)
         form_layout.addRow("Password (Обязательное):", self.password_field)
         main_layout.addLayout(form_layout)
