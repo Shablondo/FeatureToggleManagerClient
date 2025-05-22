@@ -1,10 +1,13 @@
-# workers.py
 """
 Модуль workers содержит классы для выполнения сетевых запросов
-с использованием QThread из PyQt5. Здесь реализованы:
-  - EnvWorker: для создания фича‑флагов (POST-запрос).
-  - DeleteEnvWorker: для удаления фича‑флагов (DELETE-запрос).
-Общая логика получения токена вынесена в функцию get_token.
+с использованием QThread из PyQt5.
+
+В модуле реализованы:
+  - Функция get_token() для получения Bearer‑токена.
+  - BaseWorker: базовый класс, объединяющий общую логику получения токена и отправки HTTP‑запросов.
+  - EnvWorker: для создания фича‑флага (POST‑запрос).
+  - DeleteEnvWorker: для удаления фича‑флага (DELETE‑запрос).
+  - ActivityUpdateWorker: для обновления активности фича‑флагов (PUT‑запрос).
 """
 
 import requests
@@ -12,22 +15,18 @@ import urllib3
 from PyQt5.QtCore import QThread, pyqtSignal
 from config import ENV_CONFIG
 
-# Отключаем предупреждения об SSL сертификатах (только для разработки)
+# Отключаем предупреждения об SSL сертификатах (используется в разработке)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_token(envKC, username, password):
     """
-    Получает токен для выбранного окружения.
+    Получает и возвращает Bearer‑токен для указанного окружения.
 
-    Параметры:
-      envKC (str): ключ окружения ("dev", "test", "preprod", "stage", "prod")
-      username (str): имя пользователя для авторизации
-      password (str): пароль для авторизации
-
-    Возвращает:
-      str: токен, если успешно, или None в случае ошибки.
-
-    Также функция генерирует исключение, если происходит ошибка HTTP.
+    :param envKC: ключ окружения ("dev", "test", "preprod", "stage", "prod").
+    :param username: имя пользователя для авторизации.
+    :param password: пароль для авторизации.
+    :return: токен (str).
+    :raises: ValueError, если токен не найден или произошла ошибка HTTP.
     """
     urls = ENV_CONFIG.get(envKC)
     if not urls:
@@ -52,97 +51,131 @@ def get_token(envKC, username, password):
         raise ValueError(f"[{envKC}] Не найден access_token в ответе.")
     return token
 
-class EnvWorker(QThread):
+class BaseWorker(QThread):
     """
-    Выполняет POST-запрос для создания фича‑флага.
-
-    Атрибуты:
-      envKC (str): выбранное окружение
-      username (str): имя пользователя
-      password (str): пароль
-      feature_payload (dict): данные операции (JSON) для отправки
+    Базовый класс для worker‑ов.
+    Содержит общую логику получения токена и отправки HTTP запросов.
     """
     result_signal = pyqtSignal(str)
 
-    def __init__(self, envKC, username, password, feature_payload, parent=None):
+    def __init__(self, envKC, username, password, parent=None):
         super().__init__(parent)
         self.envKC = envKC
         self.username = username
         self.password = password
-        self.feature_payload = feature_payload
 
-    def run(self):
+    def get_token_and_notify(self):
+        """
+        Получает токен с помощью функции get_token() и отсылает уведомление через result_signal.
+        :return: токен или None, если произошла ошибка.
+        """
         try:
             token = get_token(self.envKC, self.username, self.password)
             self.result_signal.emit(f"[{self.envKC}] Получен токен: {token[:30]}...")
+            return token
         except Exception as e:
             self.result_signal.emit(f"[{self.envKC}] Ошибка при получении токена: {str(e)}")
-            return
+            return None
 
-        # Получаем URL для операции создания
-        feature_url = ENV_CONFIG[self.envKC]["feature"]
+    def send_request(self, method, url, headers=None, json_data=None):
+        """
+        Отправляет HTTP‑запрос.
+        :param method: "POST", "PUT" или "DELETE".
+        :param url: URL запроса.
+        :param headers: заголовки запроса.
+        :param json_data: данные в формате JSON (если применимо).
+        :return: ответ (в виде JSON или текста).
+        :raises: исключение, если запрос завершился с ошибкой.
+        """
         try:
+            if method == "POST":
+                response = requests.post(url, headers=headers, json=json_data, verify=False)
+            elif method == "PUT":
+                response = requests.put(url, headers=headers, json=json_data, verify=False)
+            elif method == "DELETE":
+                response = requests.delete(url, headers=headers, verify=False)
+            else:
+                raise ValueError("Неподдерживаемый HTTP метод.")
+            response.raise_for_status()
+            try:
+                return response.json()
+            except Exception:
+                return response.text
+        except Exception as e:
+            raise e
+
+class EnvWorker(BaseWorker):
+    """
+    Worker для создания фича‑флага – отправляет POST‑запрос.
+    """
+    def __init__(self, envKC, username, password, feature_payload, parent=None):
+        super().__init__(envKC, username, password, parent)
+        self.feature_payload = feature_payload
+
+    def run(self):
+        token = self.get_token_and_notify()
+        if not token:
+            return
+        feature_url = ENV_CONFIG[self.envKC]["feature"]
+        headers = {
+            "accept": "*/*",
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}"
+        }
+        try:
+            resp = self.send_request("POST", feature_url, headers=headers, json_data=self.feature_payload)
+            self.result_signal.emit(f"[{self.envKC}] Feature создан успешно. Ответ: {resp}")
+        except Exception as e:
+            self.result_signal.emit(f"[{self.envKC}] Ошибка при создании: {str(e)}")
+
+class DeleteEnvWorker(BaseWorker):
+    """
+    Worker для удаления фича‑флага – отправляет DELETE‑запрос.
+    """
+    def __init__(self, envKC, feature_id, username, password, parent=None):
+        super().__init__(envKC, username, password, parent)
+        self.feature_id = feature_id
+
+    def run(self):
+        token = self.get_token_and_notify()
+        if not token:
+            return
+        base_url = ENV_CONFIG[self.envKC]["feature"]
+        delete_url = f"{base_url}/{self.feature_id}"
+        headers = {
+            "accept": "*/*",
+            "Authorization": f"Bearer {token}"
+        }
+        try:
+            resp = self.send_request("DELETE", delete_url, headers=headers)
+            self.result_signal.emit(f"[{self.envKC}] Фича с id '{self.feature_id}' успешно удалена.")
+        except Exception as e:
+            self.result_signal.emit(f"[{self.envKC}] Ошибка при удалении: {str(e)}")
+
+class ActivityUpdateWorker(BaseWorker):
+    """
+    Worker для обновления активности фича‑флагов.
+    Для каждого обновления из update_list (список кортежей (feature_id, enabled))
+    отправляется PUT‑запрос вида: {base_url}/{feature_id}/enabled/{enabled}
+    """
+    def __init__(self, envKC, username, password, update_list, parent=None):
+        super().__init__(envKC, username, password, parent)
+        self.update_list = update_list
+
+    def run(self):
+        token = self.get_token_and_notify()
+        if not token:
+            return
+        base_url = ENV_CONFIG[self.envKC]["feature"]
+        for feature_id, enabled in self.update_list:
+            update_url = f"{base_url}/{feature_id}/enabled/{enabled}"
             headers = {
                 "accept": "*/*",
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {token}"
             }
-            feature_response = requests.post(
-                feature_url,
-                headers=headers,
-                json=self.feature_payload,
-                verify=False
-            )
-            feature_response.raise_for_status()
             try:
-                resp_json = feature_response.json()
-            except Exception:
-                resp_json = feature_response.text
-            self.result_signal.emit(f"[{self.envKC}] Feature создан успешно. Ответ: {resp_json}")
-        except Exception as e:
-            self.result_signal.emit(f"[{self.envKC}] Ошибка при создании: {str(e)}")
-
-class DeleteEnvWorker(QThread):
-    """
-    Выполняет DELETE-запрос для удаления фича‑флага.
-
-    Атрибуты:
-      envKC (str): выбранное окружение
-      feature_id (str): ID фичи (будет добавлен к базовому URL)
-      username (str): имя пользователя
-      password (str): пароль
-    """
-    result_signal = pyqtSignal(str)
-
-    def __init__(self, envKC, feature_id, username, password, parent=None):
-        super().__init__(parent)
-        self.envKC = envKC
-        self.feature_id = feature_id
-        self.username = username
-        self.password = password
-
-    def run(self):
-        try:
-            token = get_token(self.envKC, self.username, self.password)
-            self.result_signal.emit(f"[{self.envKC}] Получен токен: {token[:30]}...")
-        except Exception as e:
-            self.result_signal.emit(f"[{self.envKC}] Ошибка при получении токена: {str(e)}")
-            return
-
-        # Формируем URL для удаления, добавляя ID к базовому URL
-        base_url = ENV_CONFIG[self.envKC]["feature"]
-        delete_url = f"{base_url}/{self.feature_id}"
-        try:
-            headers = {
-                "accept": "*/*",
-                "Authorization": f"Bearer {token}"
-            }
-            delete_response = requests.delete(
-                delete_url,
-                headers=headers,
-                verify=False
-            )
-            delete_response.raise_for_status()
-            self.result_signal.emit(f"[{self.envKC}] Фича с id '{self.feature_id}' успешно удалена.")
-        except Exception as e:
-            self.result_signal.emit(f"[{self.envKC}] Ошибка при удалении: {str(e)}")
+                resp = self.send_request("PUT", update_url, headers=headers)
+                self.result_signal.emit(f"[{self.envKC}] Обновление активности фичи '{feature_id}' на '{enabled}' успешно. Ответ: {resp}")
+            except Exception as e:
+                self.result_signal.emit(f"[{self.envKC}] Ошибка при обновлении фичи '{feature_id}': {str(e)}")

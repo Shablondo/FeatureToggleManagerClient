@@ -1,6 +1,6 @@
 """
 Точка входа в проект Feature Toggle Manager Client.
-Перед запуском основного окна обновляет файл hosts (если требуется).
+Перед запуском основного окна вызывается функция update_hosts() для обновления файла hosts.
 """
 
 import sys
@@ -9,8 +9,7 @@ from views import MainWindow
 from utils import update_hosts
 
 if __name__ == "__main__":
-    # Попытка обновить файл hosts.
-    # Для успешного выполнения может потребоваться запуск с правами администратора.
+    # Обновляем файл hosts – для успешного выполнения может потребоваться запуск с правами администратора.
     update_hosts()
 
     app = QApplication(sys.argv)
