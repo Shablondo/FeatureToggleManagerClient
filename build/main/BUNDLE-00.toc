@@ -1,0 +1,3 @@
+([('main',
+   '/Users/shablondo/PycharmProjects/FeatureToggleManagerClient/dist/main',
+   'EXECUTABLE')],)
