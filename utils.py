@@ -1,23 +1,13 @@
 """
-Модуль utils содержит вспомогательные функции проекта.
-
-Функция update_hosts() добавляет в файл hosts запись:
-    193.232.108.20 kc-omni.x5.ru
-для Windows и macOS, если она ещё не присутствует. Для внесения изменений
-в файл hosts требуются права администратора.
+Модуль utils содержит вспомогательные функции для проекта.
+Функция update_hosts() добавляет запись "193.232.108.20 kc-omni.x5.ru" в файл hosts
+(Windows и macOS), если она ещё не присутствует. Для изменения файла hosts требуется запуск с правами администратора.
 """
 
 import platform
 
-def update_hosts():
-    """
-    Добавляет запись "193.232.108.20 kc-omni.x5.ru" в файл hosts для Windows и macOS,
-    если она там ещё не присутствует.
 
-    Пути такие:
-      - Windows: C:\Windows\System32\drivers\etc\hosts
-      - macOS: /etc/hosts
-    """
+def update_hosts():
     new_entry = "193.232.108.20 kc-omni.x5.ru"
     system_name = platform.system()
     if system_name == "Windows":
@@ -26,7 +16,6 @@ def update_hosts():
         hosts_path = "/etc/hosts"
     else:
         hosts_path = "/etc/hosts"
-
     try:
         with open(hosts_path, "r", encoding="utf-8") as f:
             lines = f.read().splitlines()
