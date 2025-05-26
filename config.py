@@ -17,11 +17,11 @@ ENV_CONFIG = {
     },
     "preprod": {
          "token": "https://kc-preprod-omni.x5.ru/auth/realms/feature-toggle-management-tf/protocol/openid-connect/token",
-         "feature": "https://feature-toggle-management-pp-preprod.k8s.5post-stage-2.salt.x5.ru/api/v1/feature"
+         "feature": "https://feature-toggle-management.k8s.5post-stage-2.salt.x5.ru/api/v1/feature"
     },
     "stage": {
          "token": "https://kc-stage-omni.x5.ru/auth/realms/feature-toggle-management-tf/protocol/openid-connect/token",
-         "feature": "https://feature-toggle-management-pp-stage.k8s.5post-stage-1.salt.x5.ru/api/v1/feature"
+         "feature": "https://feature-toggle-management.k8s.5post-stage-1.salt.x5.ru/api/v1/feature"
     },
     "prod": {
          "token": "https://kc-omni.x5.ru/auth/realms/feature-toggle-management-tf/protocol/openid-connect/token",
